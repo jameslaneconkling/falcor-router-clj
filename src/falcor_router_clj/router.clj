@@ -26,7 +26,8 @@
     previous-path-set
     parsed]
    (cond
-     (nil? pattern-key) (assoc parsed :remaining path-set) ;; successful pattern match
+     (and (nil? pattern-key) (empty? path-set)) parsed ;; successful pattern match
+     (nil? pattern-key) (assoc parsed :remaining path-set) ;; successful pattern match [with remaining path-sets]
      (nil? key-set) {:unmatched [(concat previous-path-set path-set)] :matched []} ;; failed pattern match: path-set too short
      :else (let [{matched true unmatched false} (test-pattern pattern-key key-set)]
              (cond
@@ -52,8 +53,7 @@
   (test (match-path-set pattern
                         ["resource" ["one" "two"] "label" 0])
         {:unmatched []
-         :matched [["resource"] ["one" "two"] ["label"] [0]]
-         :remaining nil})
+         :matched [["resource"] ["one" "two"] ["label"] [0]]})
   ;; test unmatched
   (test (match-path-set pattern
                         ["resource" {:to 10} "label" ["abc" {:to 1}]])
@@ -64,8 +64,7 @@
                         ["resource" ["one" {:to 10}] "label" ["abc" {:to 1}]])
         {:unmatched [["resource" {:to 10} "label" ["abc" {:to 1}]]
                      ["resource" ["one" {:to 10}] "label" "abc"]]
-         :matched [["resource"] ["one"] ["label"] [{:to 1}]]
-         :remaining nil})
+         :matched [["resource"] ["one"] ["label"] [{:to 1}]]})
   ;; test remaining
   (test (match-path-set pattern
                         ["resource" "one" "relation" 0 "label" 0])
