@@ -90,6 +90,16 @@
        new-parsed
        (recur pattern path-sets new-parsed)))))
 
+(let [pattern [(partial = "resource") #_ids key? #_predicates key? #_ranges range?]]
+  (test (match-path-sets pattern
+                         [["resource" ["one" "two"] "label" 0]
+                          ["resource" "three" "relation" {:to 4}]])
+        {:unmatched [[] []]
+         :matched [{:paths [["resource"] ["three"] ["relation"] [{:to 4}]]
+                    :remaining nil}
+                   {:paths [["resource"] ["one" "two"] ["label"] [0]]
+                    :remaining nil}]}))
+
 (match-path-sets
  [keyword? (partial = "thing") keyword? keyword?]
  [[:a ["thing" "thingg"] :b [:c "string"] :e]
