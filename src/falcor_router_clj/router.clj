@@ -34,18 +34,40 @@
                (= 0 (count unmatched)) (recur rest-pattern
                                               rest-path-set
                                               (conj previous-path-set key-set)
-                                              (update-in parsed [:matched] conj matched)) ;; successful key-set match
+                                              (update parsed :matched conj matched)) ;; successful key-set match
                :else (recur rest-pattern
                             rest-path-set
                             (conj previous-path-set key-set)
                             (-> parsed
-                                (update-in [:unmatched] conj (concat previous-path-set unmatched rest-path-set))
-                                (update-in [:matched] conj matched)))))))) ;; successful key-set match and failed key-set match
+                                (update :unmatched conj (concat previous-path-set unmatched rest-path-set))
+                                (update :matched conj matched)))))))) ;; successful key-set match and failed key-set match
 
+(defn test
+  [actual expected]
+  (if-not (= actual expected)
+    (throw (AssertionError. (str "Expected:\t" expected "\n\nActual:\t" actual)))))
 
-(match-path-set [keyword? (partial = "thing") keyword? keyword?] [:a ["thing" "thingg"] :b [:c "string"] :e])
+(let [pattern [(partial = "resource") #_ids key? #_predicates key? #_ranges range?]]
+  ;; test match
+  (test (match-path-set pattern
+                        ["resource" ["one" "two"] "label" 0])
+        {:unmatched []
+         :matched [["resource"] ["one" "two"] ["label"] [0]]
+         :remaining nil})
+  ;; test unmatch
+  (test (match-path-set pattern
+                        ["resource" ["one" {:to 10}] "label" ["abc" {:to 1}]])
+        {:unmatched [["resource" {:to 10} "label" ["abc" {:to 1}]]
+                     ["resource" ["one" {:to 10}] "label" "abc"]]
+         :matched [["resource"] ["one"] ["label"] [{:to 1}]]
+         :remaining nil})
+  ;; test remaining
+  (test (match-path-set pattern
+                        ["resource" "one" "relation" 0 "label" 0])
+        {:unmatched []
+         :matched [["resource"] ["one"] ["relation"] [0]]
+         :remaining ["label" 0]}))
 
-(match-path-set [(partial = "thing") keyword? keyword?] [:a ["thing" "thingg"] :b [:c "string"] :e])
 
 (defn match-path-sets
   ([pattern path-sets] (match-path-sets pattern
