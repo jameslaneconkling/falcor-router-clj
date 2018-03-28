@@ -15,6 +15,11 @@
          :else false))
 
 
+(defn literal?
+  [literal]
+  (partial = literal))
+
+
 (defn test-pattern
   [pattern-key key-set]
   (let [key-setv (if (sequential? key-set) key-set (vector key-set))]
@@ -71,9 +76,7 @@
 
 
 (defn match-path-sets
-  ([pattern path-sets] (match-path-sets pattern
-                                        path-sets
-                                        {}))
+  ([pattern path-sets] (match-path-sets pattern path-sets {}))
   ([pattern [path-set & path-sets] parsed]
    (let [new-parsed (merge-parsed parsed (match-path-set pattern path-set))]
      (if (empty? path-sets)

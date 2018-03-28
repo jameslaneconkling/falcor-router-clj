@@ -1,6 +1,7 @@
 (ns falcor-router-clj.router-test
   (:require [falcor-router-clj.router :refer [key?
                                               range?
+                                              literal?
                                               match-path-set
                                               match-path-sets]]
             [clojure.test :as t]))
@@ -12,7 +13,7 @@
 
 (t/deftest router
   (t/testing "match path set"
-    (let [pattern [(partial = "resource") key? key? range?]]
+    (let [pattern [(literal? "resource") key? key? range?]]
 
       ;; test match
       (is-equal (match-path-set pattern
@@ -54,7 +55,7 @@
 
 
     (t/testing "match path sets"
-      (let [pattern [(partial = "resource") key? key? range?]]
+      (let [pattern [(literal? "resource") key? key? range?]]
 
         ;; test matched
         (is-equal (match-path-sets pattern
