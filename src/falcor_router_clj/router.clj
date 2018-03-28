@@ -18,7 +18,6 @@
   (let [key-setv (if (sequential? key-set) key-set (vector key-set))]
     (group-by pattern-key key-setv)))
 
-
 (defn match-path-set
   ([pattern path-set] (match-path-set pattern path-set [] {:unmatched [] :matched []}))
   ([[pattern-key & rest-pattern]
@@ -48,7 +47,7 @@
   (if-not (= actual expected)
     (throw (AssertionError. (str "Expected:\t" expected "\n\nActual:\t" actual)))))
 
-(let [pattern [(partial = "resource") #_ids key? #_predicates key? #_ranges range?]]
+(let [pattern [(partial = "resource") key? key? range?]]
   ;; test match
   (test (match-path-set pattern
                         ["resource" ["one" "two"] "label" 0])
@@ -74,16 +73,12 @@
          :matched [["resource"] ["one"] ["relation"] [0]]
          :remaining ["label" 0]}))
 
-
 (defn merge-parsed
-  [a b]
-  (if (empty? (:matched b))
-    (update a :unmatched concat (:unmatched b))
-    (-> a
-        (update :unmatched concat (:unmatched b))
-        (update :matched conj {:paths (:matched b)
-                               :remaining (:remaining b)}))))
-
+  [parsed-path {:keys [matched unmatched remaining]}]
+  (let [new-match {:paths matched :remaining remaining}]
+    (cond-> parsed-path
+      true (update :unmatched concat unmatched)
+      (not (empty? matched)) (update :matched conj new-match))))
 
 (defn match-path-sets
   ([pattern path-sets] (match-path-sets pattern
@@ -95,7 +90,8 @@
        new-parsed
        (recur pattern path-sets new-parsed)))))
 
-(let [pattern [(partial = "resource") #_ids key? #_predicates key? #_ranges range?]]
+(let [pattern
+      [(partial = "resource") key? key? range?]]
   ;; test matched
   (test (match-path-sets pattern
                          [["resource" ["one" "two"] "label" 0]
