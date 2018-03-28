@@ -26,6 +26,12 @@
                 {:unmatched [["resource" {:to 10} "label" ["abc" {:to 1}]]]
                  :matched []})
 
+      ;; test unmatched - short pathset
+      (is-equal (match-path-set pattern
+                                ["resource" ["one" "two"] "label"])
+                {:unmatched [["resource" ["one" "two"] "label"]]
+                 :matched []})
+
       ;; test match and unmatched
       ;; TODO - BUG: intersecting path bt/ two unmatched path-sets: ["resource" {:to 10} "label" "abc"] appears in both
       ;; this path would be dispatched twice against future matching paths
