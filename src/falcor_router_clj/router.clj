@@ -60,6 +60,8 @@
         {:unmatched [["resource" {:to 10} "label" ["abc" {:to 1}]]]
          :matched []})
   ;; test match and unmatched
+  ;; TODO - BUG: intersecting path bt/ two unmatched path-sets: ["resource" {:to 10} "label" "abc"] appears in both
+  ;; this path would be dispatched twice against future matching paths
   (test (match-path-set pattern
                         ["resource" ["one" {:to 10}] "label" ["abc" {:to 1}]])
         {:unmatched [["resource" {:to 10} "label" ["abc" {:to 1}]]
@@ -75,10 +77,13 @@
 
 (defn merge-parsed
   [a b]
-  (-> a
-      (update :unmatched conj (:unmatched b))
-      (update :matched conj {:paths (:matched b)
-                             :remaining (:remaining b)})))
+  (if (empty? (:matched b))
+    (update a :unmatched concat (:unmatched b))
+    (-> a
+        (update :unmatched concat (:unmatched b))
+        (update :matched conj {:paths (:matched b)
+                               :remaining (:remaining b)}))))
+
 
 (defn match-path-sets
   ([pattern path-sets] (match-path-sets pattern
@@ -91,16 +96,21 @@
        (recur pattern path-sets new-parsed)))))
 
 (let [pattern [(partial = "resource") #_ids key? #_predicates key? #_ranges range?]]
+  ;; test matched
   (test (match-path-sets pattern
                          [["resource" ["one" "two"] "label" 0]
                           ["resource" "three" "relation" {:to 4}]])
-        {:unmatched [[] []]
+        {:unmatched []
          :matched [{:paths [["resource"] ["three"] ["relation"] [{:to 4}]]
                     :remaining nil}
                    {:paths [["resource"] ["one" "two"] ["label"] [0]]
+                    :remaining nil}]})
+  ;; test unmatched
+  (test (match-path-sets pattern
+                         [["resource" {:to 10} "label" [0 {:to 1}]]
+                          ["resource" ["one" {:to 10}] "relation" ["abc" {:to 1}]]])
+        {:unmatched [["resource" {:to 10} "label" [0 {:to 1}]]
+                     ["resource" {:to 10} "relation" ["abc" {:to 1}]]
+                     ["resource" ["one" {:to 10}] "relation" "abc"]]
+         :matched [{:paths [["resource"] ["one"] ["relation"] [{:to 1}]]
                     :remaining nil}]}))
-
-(match-path-sets
- [keyword? (partial = "thing") keyword? keyword?]
- [[:a ["thing" "thingg"] :b [:c "string"] :e]
-  [:a "thing" :bb :cc]])
