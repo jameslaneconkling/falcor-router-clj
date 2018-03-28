@@ -69,9 +69,12 @@
         ;; test unmatched
         (is-equal (match-path-sets pattern
                                    [["resource" {:to 10} "label" [0 {:to 1}]]
-                                    ["resource" ["one" {:to 10}] "relation" ["abc" {:to 1}]]])
+                                    ["resource" ["one" {:to 10}] "relation" ["abc" {:to 1}]]
+                                    ["resource" "two" "relation" 0 "label" 0]])
                   {:unmatched [["resource" {:to 10} "label" [0 {:to 1}]]
                                ["resource" {:to 10} "relation" ["abc" {:to 1}]]
                                ["resource" ["one" {:to 10}] "relation" "abc"]]
-                   :matched [{:paths [["resource"] ["one"] ["relation"] [{:to 1}]]
+                   :matched [{:paths [["resource"] ["two"] ["relation"] [0]]
+                              :remaining ["label" 0]}
+                             {:paths [["resource"] ["one"] ["relation"] [{:to 1}]]
                               :remaining []}]}))))
