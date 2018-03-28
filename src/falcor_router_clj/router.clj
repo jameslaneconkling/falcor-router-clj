@@ -30,8 +30,8 @@
      (nil? key-set) {:unmatched [(concat previous-path-set path-set)] :matched []} ;; failed pattern match: path-set too short
      :else (let [{matched true unmatched false} (test-pattern pattern-key key-set)]
              (cond
-               (= 0 (count matched)) {:unmatched [(concat previous-path-set path-set)] :matched []} ;; failed pattern match: key-set doesn't match pattern
-               (= 0 (count unmatched)) (recur rest-pattern
+               (empty? matched) {:unmatched [(concat previous-path-set path-set)] :matched []} ;; failed pattern match: key-set doesn't match pattern
+               (empty? unmatched) (recur rest-pattern
                                               rest-path-set
                                               (conj previous-path-set key-set)
                                               (update parsed :matched conj matched)) ;; successful key-set match
