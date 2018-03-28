@@ -21,6 +21,7 @@
     (group-by pattern-key key-setv)))
 
 
+;; TODO - this could be rewritten as a reduction over the pattern
 (defn match-path-set
   ([pattern path-set] (match-path-set pattern path-set [] {:unmatched [] :matched []}))
   ([[pattern-key & rest-pattern]
@@ -28,22 +29,25 @@
     previous-path-set
     parsed]
    (cond
-     (and (nil? pattern-key) (empty? path-set)) parsed ;; successful pattern match
-     (nil? pattern-key) (assoc parsed :remaining path-set) ;; successful pattern match [with remaining path-sets]
-     (nil? key-set) {:unmatched [(concat previous-path-set path-set)] :matched []} ;; failed pattern match: path-set too short
+     ;; successful pattern match
+     (and (nil? pattern-key) (empty? path-set)) parsed
+     ;; successful pattern match [with remaining path-sets]
+     (nil? pattern-key) (assoc parsed :remaining path-set)
+     ;; failed pattern match: path-set too short
+     (nil? key-set) {:unmatched [(concat previous-path-set path-set)] :matched []}
      :else (let [{matched true unmatched false} (test-pattern pattern-key key-set)]
-             (cond
-               (empty? matched) {:unmatched [(concat previous-path-set path-set)] :matched []} ;; failed pattern match: key-set doesn't match pattern
-               (empty? unmatched) (recur rest-pattern
-                                              rest-path-set
-                                              (conj previous-path-set key-set)
-                                              (update parsed :matched conj matched)) ;; successful key-set match
-               :else (recur rest-pattern
-                            rest-path-set
-                            (conj previous-path-set key-set)
-                            (-> parsed
-                                (update :unmatched conj (concat previous-path-set unmatched rest-path-set))
-                                (update :matched conj matched)))))))) ;; successful key-set match and failed key-set match
+             (if (empty? matched)
+               ;; failed pattern match: key-set doesn't match pattern
+               {:unmatched [(concat previous-path-set path-set)] :matched []}
+               ;; successful key-set match
+               (recur rest-pattern
+                      rest-path-set
+                      (conj previous-path-set key-set)
+                      (cond-> parsed
+                        (not (empty? unmatched)) (update :unmatched conj (concat previous-path-set
+                                                                                 unmatched
+                                                                                 rest-path-set))
+                        true (update :matched conj matched))))))))
 
 
 ;; (defn test
