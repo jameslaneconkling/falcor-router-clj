@@ -82,3 +82,42 @@
      (if (empty? path-sets)
        new-parsed
        (recur pattern path-sets new-parsed)))))
+
+
+(defn query-route
+  [{:keys [pattern handler]}
+   path-sets]
+  (let [parsed (match-path-sets pattern path-sets)
+        query (handler (map :paths (:matched parsed)))]
+    (assoc parsed :query query)))
+
+
+(defn router
+  [routes]
+  (fn [path-sets]
+    (reduce (fn [result route]
+              (let [{:keys [unmatched query]} (query-route route (:unmatched result))]
+                (cond-> result
+                  true (assoc :unmatched unmatched)
+                  (not (nil? query)) (update :queries conj query)
+                  (empty? unmatched) reduced)))
+            {:unmatched path-sets :queries []}
+            routes)))
+
+
+;; (defn get-resources
+;;   [[ids predicates ranges]]
+;;   (str ids predicates ranges))
+
+;; (defn get-search
+;;   [[query search-ranges predicates predicate-ranges]]
+;;   (str query search-ranges predicates predicate-ranges))
+
+;; (def routes [{:pattern [(literal? "resource") key? key? range?] :handler get-resources}
+;;              {:pattern [(literal? "search") key? range? key? range?] :handler get-search}
+;;              {:pattern [(literal? "search") key? range?] :handler get-search}])
+
+;; (def path-sets [["resource" ["one" "two"] "label" 0]
+;;                 ["search" "QUERY" {:to 10} ["label" "age"] 0]])
+
+;; ((router routes) path-sets)
