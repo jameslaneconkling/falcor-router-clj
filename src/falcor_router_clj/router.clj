@@ -1,5 +1,6 @@
 (ns falcor-router-clj.router
-  (:require [clojure.core.match :refer [match]]))
+  (:require [clojure.core.match :refer [match]]
+            [falcor-router-clj.range :refer [range->list]]))
 
 
 (defn is-equal
@@ -71,37 +72,12 @@
        new-parsed
        (recur pattern path-sets new-parsed)))))
 
-(let [pattern [(literal? "resource") key? key? range?]]
-
-        ;; test matched
-        (is-equal (match-path-sets pattern
-                                   [["resource" ["one" "two"] "label" 0]
-                                    ["resource" "three" "relation" {:to 4}]])
-                  {:unmatched []
-                   :matched [{:paths [["resource"] ["one" "two"] ["label"] [0]]
-                              :remaining []}
-                             {:paths [["resource"] ["three"] ["relation"] [{:to 4}]]
-                              :remaining []}]})
-
-        ;; test unmatched
-        (is-equal (match-path-sets pattern
-                                   [["resource" {:to 10} "label" [0 {:to 1}]]
-                                    ["resource" ["one" {:to 10}] "relation" ["abc" {:to 1}]]
-                                    ["resource" "two" "relation" 0 "label" 0]])
-                  {:unmatched [["resource" {:to 10} "label" [0 {:to 1}]]
-                               ["resource" {:to 10} "relation" ["abc" {:to 1}]]
-                               ["resource" ["one" {:to 10}] "relation" "abc"]]
-                   :matched [{:paths [["resource"] ["one"] ["relation"] [{:to 1}]]
-                              :remaining []}
-                             {:paths [["resource"] ["two"] ["relation"] [0]]
-                              :remaining ["label" 0]}]}))
-
 
 (defn query-route
   [{:keys [pattern handler]}
    path-sets]
   (let [parsed (match-path-sets pattern path-sets)
-        query (handler (map :paths (:matched parsed)))]
+        query (->> parsed :matched (mapcat (comp handler :paths)))]
     (assoc parsed :query query)))
 
 
@@ -112,7 +88,7 @@
               (let [{:keys [unmatched query]} (query-route route (:unmatched result))]
                 (cond-> result
                   true (assoc :unmatched unmatched)
-                  (not (nil? query)) (update :queries conj query)
+                  true (update :queries conj query)
                   (empty? unmatched) reduced)))
             {:unmatched path-sets :queries []}
             routes)))
@@ -120,23 +96,40 @@
 
 ;; TODO - async via core.async
 ;;      - combine path-value results into graphJSON
+;;      - follow refs
 ;;      - handle unmatched routes
 ;;      - match data structure across calls
 ;;      - use spec to document/test types: path, path-set, key-set, pattern, parsed-key-set
 
 ;; (defn get-resources
-;;   [[ids predicates ranges]]
-;;   (str ids predicates ranges))
+;;   [[_ ids predicates ranges]]
+;;   (for [id ids
+;;         predicate predicates
+;;         index (mapcat range->list ranges)]
+;;     {:path ["resource" id predicate index]
+;;      :value (str predicate index)}))
+
+;; (defn get-resources
+;;   [key-sets]
+;;   [{:path [:a :b]
+;;     :value :c}])
 
 ;; (defn get-search
-;;   [[query search-ranges predicates predicate-ranges]]
-;;   (str query search-ranges predicates predicate-ranges))
+;;   [[_ queries search-ranges predicates predicate-ranges]]
+;;   (for [query queries
+;;         search-index (mapcat range->list search-ranges)
+;;         predicate predicates
+;;         predicate-index (mapcat range->list predicate-ranges)]
+;;     {:path ["search" query search-index predicate predicate-index]
+;;      :value (str query search-index predicate predicate-index)}))
 
 ;; (def routes [{:pattern [(literal? "resource") key? key? range?] :handler get-resources}
 ;;              {:pattern [(literal? "search") key? range? key? range?] :handler get-search}
 ;;              {:pattern [(literal? "search") key? range?] :handler get-search}])
 
 ;; (def path-sets [["resource" ["one" "two"] "label" 0]
-;;                 ["search" "QUERY" {:to 10} ["label" "age"] 0]])
+;;                 ["search" "QUERY" {:to 4} ["label" "age"] 0]])
 
-;; ((router routes) path-sets)
+;; (-> ((router routes) path-sets)
+;;     :queries
+;;     first)
