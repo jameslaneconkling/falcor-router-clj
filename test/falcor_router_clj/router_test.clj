@@ -19,22 +19,20 @@
       (is-equal (match-path-set pattern
                                 ["resource" ["one" "two"] "label" 0])
                 {:unmatched []
-                 :matched [["resource"] ["one" "two"] ["label"] [0]]
-                 :remaining []})
+                 :matched [{:paths [["resource"] ["one" "two"] ["label"] [0]]
+                            :remaining []}]})
 
       ;; test unmatched - bad pattern
       (is-equal (match-path-set pattern
                                 ["resource" {:to 10} "label" ["abc" {:to 1}]])
                 {:unmatched [["resource" {:to 10} "label" ["abc" {:to 1}]]]
-                 :matched []
-                 :remaining []})
+                 :matched []})
 
       ;; test unmatched - short pathset
       (is-equal (match-path-set pattern
                                 ["resource" ["one" "two"] "label"])
                 {:unmatched [["resource" ["one" "two"] "label"]]
-                 :matched []
-                 :remaining []})
+                 :matched []})
 
       ;; test match and unmatched
       ;; TODO - BUG: intersecting path bt/ two unmatched path-sets: ["resource" {:to 10} "label" "abc"] appears in both
@@ -43,15 +41,15 @@
                                 ["resource" ["one" {:to 10}] "label" ["abc" {:to 1}]])
                 {:unmatched [["resource" {:to 10} "label" ["abc" {:to 1}]]
                              ["resource" ["one" {:to 10}] "label" "abc"]]
-                 :matched [["resource"] ["one"] ["label"] [{:to 1}]]
-                 :remaining []})
+                 :matched [{:paths [["resource"] ["one"] ["label"] [{:to 1}]]
+                            :remaining []}]})
 
       ;; test remaining
       (is-equal (match-path-set pattern
                                 ["resource" "one" "relation" 0 "label" 0])
                 {:unmatched []
-                 :matched [["resource"] ["one"] ["relation"] [0]]
-                 :remaining ["label" 0]})))
+                 :matched [{:paths [["resource"] ["one"] ["relation"] [0]]
+                            :remaining ["label" 0]}]})))
 
 
     (t/testing "match path sets"
@@ -62,9 +60,9 @@
                                    [["resource" ["one" "two"] "label" 0]
                                     ["resource" "three" "relation" {:to 4}]])
                   {:unmatched []
-                   :matched [{:paths [["resource"] ["three"] ["relation"] [{:to 4}]]
+                   :matched [{:paths [["resource"] ["one" "two"] ["label"] [0]]
                               :remaining []}
-                             {:paths [["resource"] ["one" "two"] ["label"] [0]]
+                             {:paths [["resource"] ["three"] ["relation"] [{:to 4}]]
                               :remaining []}]})
 
         ;; test unmatched
@@ -75,7 +73,7 @@
                   {:unmatched [["resource" {:to 10} "label" [0 {:to 1}]]
                                ["resource" {:to 10} "relation" ["abc" {:to 1}]]
                                ["resource" ["one" {:to 10}] "relation" "abc"]]
-                   :matched [{:paths [["resource"] ["two"] ["relation"] [0]]
-                              :remaining ["label" 0]}
-                             {:paths [["resource"] ["one"] ["relation"] [{:to 1}]]
-                              :remaining []}]}))))
+                   :matched [{:paths [["resource"] ["one"] ["relation"] [{:to 1}]]
+                              :remaining []}
+                             {:paths [["resource"] ["two"] ["relation"] [0]]
+                              :remaining ["label" 0]}]}))))

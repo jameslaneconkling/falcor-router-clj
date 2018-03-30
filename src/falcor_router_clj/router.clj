@@ -1,6 +1,13 @@
 (ns falcor-router-clj.router
   (:require [clojure.core.match :refer [match]]))
 
+
+(defn is-equal
+  [actual expected]
+  (if-not (= actual expected)
+    (throw (AssertionError. (str "Expected:\t" expected "\n\nActual:\t" actual)))))
+
+
 (defn key?
   [key]
   (or (string? key) (number? key)))
@@ -26,62 +33,68 @@
     (group-by pattern-key key-setv)))
 
 
-;; TODO - this could be rewritten as a reduction over the pattern
+;; TODO - could this be rewritten as a reduction over the pattern
 (defn match-path-set
   ([pattern path-set]
    (if (< (count path-set) (count pattern))
      ;; failed pattern match: path-set too short
-     {:unmatched [path-set] :matched [] :remaining []}
+     {:unmatched [path-set] :matched []}
      (loop [[pattern-key & rest-pattern] pattern
-            [key-set & rest-path-set] path-set
+            [key-set & rest-path-set :as remaining-path-set] path-set
             previous-path-set []
-            parsed {:unmatched [] :matched []}]
-       (let [{matched true unmatched false} (test-pattern pattern-key key-set)]
-         (cond
-           ;; failed pattern match: key-set doesn't match pattern
-           (empty? matched) {:unmatched [path-set] :matched [] :remaining []}
-           ;; successful pattern match
-           (empty? rest-pattern) (cond-> parsed
-                                   (not (empty? unmatched)) (update :unmatched
-                                                                    conj
-                                                                    (concat previous-path-set
-                                                                            unmatched
-                                                                            rest-path-set))
-                                   true (update :matched conj matched)
-                                   true (assoc :remaining (or rest-path-set [])))
-           ;; successful key-set match
-           :else (recur rest-pattern
-                        rest-path-set
-                        (conj previous-path-set key-set)
-                        (cond-> parsed
-                          (not (empty? unmatched)) (update :unmatched
-                                                           conj
-                                                           (concat previous-path-set
-                                                                   unmatched
-                                                                   rest-path-set))
-                          true (update :matched conj matched)))))))))
-
-
-;; (defn is-equal
-;;   [actual expected]
-;;   (if-not (= actual expected)
-;;     (throw (AssertionError. (str "Expected:\t" expected "\n\nActual:\t" actual)))))
-
-(defn merge-parsed
-  [parsed-path {:keys [matched unmatched remaining]}]
-  (let [new-match {:paths matched :remaining remaining}]
-    (cond-> parsed-path
-      true (update :unmatched concat unmatched)
-      (not (empty? matched)) (update :matched conj new-match))))
+            parsed {:unmatched [] :matched [{:paths []}]}]
+       (if (nil? pattern-key)
+         ;; successful pattern match
+         (assoc-in parsed [:matched 0 :remaining] (or remaining-path-set [])) ;; TODO - destructure remaining-path-set using :or
+         (let [{matched true unmatched false} (test-pattern pattern-key key-set)]
+           (cond
+             ;; failed pattern match: key-set doesn't match pattern
+             (empty? matched) {:unmatched [path-set] :matched []}
+             ;; successful key-set match
+             :else (recur rest-pattern
+                          rest-path-set
+                          (conj previous-path-set key-set)
+                          (cond-> parsed
+                            (not (empty? unmatched)) (update :unmatched
+                                                             conj
+                                                             (concat previous-path-set
+                                                                     unmatched
+                                                                     rest-path-set))
+                            true (update-in [:matched 0 :paths] conj matched)))))))))) ;; TODO - paths should be :path, or :path-set
 
 
 (defn match-path-sets
   ([pattern path-sets] (match-path-sets pattern path-sets {}))
   ([pattern [path-set & path-sets] parsed]
-   (let [new-parsed (merge-parsed parsed (match-path-set pattern path-set))]
+   (let [new-parsed (merge-with concat parsed (match-path-set pattern path-set))]
      (if (empty? path-sets)
        new-parsed
        (recur pattern path-sets new-parsed)))))
+
+(let [pattern [(literal? "resource") key? key? range?]]
+
+        ;; test matched
+        (is-equal (match-path-sets pattern
+                                   [["resource" ["one" "two"] "label" 0]
+                                    ["resource" "three" "relation" {:to 4}]])
+                  {:unmatched []
+                   :matched [{:paths [["resource"] ["one" "two"] ["label"] [0]]
+                              :remaining []}
+                             {:paths [["resource"] ["three"] ["relation"] [{:to 4}]]
+                              :remaining []}]})
+
+        ;; test unmatched
+        (is-equal (match-path-sets pattern
+                                   [["resource" {:to 10} "label" [0 {:to 1}]]
+                                    ["resource" ["one" {:to 10}] "relation" ["abc" {:to 1}]]
+                                    ["resource" "two" "relation" 0 "label" 0]])
+                  {:unmatched [["resource" {:to 10} "label" [0 {:to 1}]]
+                               ["resource" {:to 10} "relation" ["abc" {:to 1}]]
+                               ["resource" ["one" {:to 10}] "relation" "abc"]]
+                   :matched [{:paths [["resource"] ["one"] ["relation"] [{:to 1}]]
+                              :remaining []}
+                             {:paths [["resource"] ["two"] ["relation"] [0]]
+                              :remaining ["label" 0]}]}))
 
 
 (defn query-route
@@ -104,6 +117,12 @@
             {:unmatched path-sets :queries []}
             routes)))
 
+
+;; TODO - async via core.async
+;;      - combine path-value results into graphJSON
+;;      - handle unmatched routes
+;;      - match data structure across calls
+;;      - use spec to document/test types: path, path-set, key-set, pattern, parsed-key-set
 
 ;; (defn get-resources
 ;;   [[ids predicates ranges]]
