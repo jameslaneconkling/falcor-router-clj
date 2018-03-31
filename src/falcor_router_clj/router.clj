@@ -65,12 +65,10 @@
 
 
 (defn match-path-sets
-  ([pattern path-sets] (match-path-sets pattern path-sets {}))
-  ([pattern [path-set & path-sets] parsed]
-   (let [new-parsed (merge-with concat parsed (match-path-set pattern path-set))]
-     (if (empty? path-sets)
-       new-parsed
-       (recur pattern path-sets new-parsed)))))
+  [pattern path-sets]
+  (reduce #(merge-with concat %1 (match-path-set pattern %2))
+          {}
+          path-sets))
 
 
 (defn query-route
@@ -78,7 +76,7 @@
    path-sets]
   (update (match-path-sets pattern path-sets)
           :matched
-          (partial map #(assoc % :query (handler (:paths %)))))) ;; NOTE - overwriting :paths changes its type signature.  maybe parsed should be extended
+          (partial map #(assoc % :query (handler (:paths %))))))
 
 
 (defn router
@@ -93,6 +91,7 @@
                   (empty? unmatched) reduced)))
             {:unmatched path-sets :matched []}
             routes)))
+
 
 ;; TODO - async via core.async
 ;;      - combine path-value results into graphJSON
