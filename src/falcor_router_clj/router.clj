@@ -1,6 +1,5 @@
 (ns falcor-router-clj.router
   (:require [clojure.core.match :refer [match]]
-            [clojure.walk :refer [walk]]
             [falcor-router-clj.range :refer [range->list]]))
 
 
@@ -95,37 +94,9 @@
             {:unmatched path-sets :matched []}
             routes)))
 
-
 ;; TODO - async via core.async
 ;;      - combine path-value results into graphJSON
 ;;      - follow refs
 ;;      - handle unmatched routes
 ;;      - match data structure across calls
 ;;      - use spec to document/test types: path, path-set, key-set, pattern, parsed-key-set
-
-(defn get-resources
-  [[_ ids predicates ranges]]
-  (for [id ids
-        predicate predicates
-        index (mapcat range->list ranges)]
-    {:path ["resource" id predicate index]
-     :value (str predicate index)}))
-
-(defn get-search
-  [[_ queries search-ranges predicates predicate-ranges]]
-  (for [query queries
-        search-index (mapcat range->list search-ranges)
-        predicate predicates
-        predicate-index (mapcat range->list predicate-ranges)]
-    {:path ["search" query search-index predicate predicate-index]
-     :value (str query search-index predicate predicate-index)}))
-
-(def routes [{:pattern [(literal? "resource") key? key? range?] :handler get-resources}
-             {:pattern [(literal? "search") key? range? key? range?] :handler get-search}
-             {:pattern [(literal? "search") key? range?] :handler get-search}])
-
-(def path-sets [["resource" ["one" "two"] "label" 0]
-                ["search" "QUERY" {:to 4} ["label" "age"] 0]])
-
-(-> ((router routes) path-sets)
-    :matched)
