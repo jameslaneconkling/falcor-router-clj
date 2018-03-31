@@ -98,14 +98,14 @@
           routes [{:pattern [(literal? "resource") key? key? range?] :handler get-resources}
                   {:pattern [(literal? "search") key? range? key? range?] :handler get-search}
                   {:pattern [(literal? "search") key? range?] :handler get-search}]
-          path-sets [["resource" ["one" "two"] "label" 0]
+          path-sets [["resource" ["one" "two"] "relation" 0 "label" 0]
                      ["search" "QUERY" {:from 2 :to 3} ["label" "age"] 0]]]
       (is-equal ((router routes) path-sets)
                 {:unmatched [],
-                 :matched [{:path-set [["resource"] ["one" "two"] ["label"] [0]],
-                            :remaining [],
-                            :query [{:path ["resource" "one" "label" 0], :value "label0"}
-                                    {:path ["resource" "two" "label" 0], :value "label0"}]}
+                 :matched [{:path-set [["resource"] ["one" "two"] ["relation"] [0]],
+                            :remaining ["label" 0],
+                            :query [{:path ["resource" "one" "relation" 0], :value "relation0"}
+                                    {:path ["resource" "two" "relation" 0], :value "relation0"}]}
                            {:path-set [["search"] ["QUERY"] [{:from 2 :to 3}] ["label" "age"] [0]],
                             :remaining [],
                             :query [{:path ["search" "QUERY" 2 "label" 0], :value "QUERY2label0"}
