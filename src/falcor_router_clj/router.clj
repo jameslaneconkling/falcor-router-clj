@@ -43,7 +43,7 @@
      (loop [[pattern-key & rest-pattern] pattern
             [key-set & rest-path-set :as remaining-path-set] path-set
             previous-path-set []
-            parsed {:unmatched [] :matched [{:paths []}]}]
+            parsed {:unmatched [] :matched [{:path-set []}]}]
        (if (nil? pattern-key)
          ;; successful pattern match
          (assoc-in parsed [:matched 0 :remaining] (or remaining-path-set [])) ;; TODO - destructure remaining-path-set using :or
@@ -61,7 +61,7 @@
                                                              (concat previous-path-set
                                                                      unmatched
                                                                      rest-path-set))
-                            true (update-in [:matched 0 :paths] conj matched)))))))))) ;; TODO - paths should be :path, or :path-set
+                            true (update-in [:matched 0 :path-set] conj matched))))))))))
 
 
 (defn match-path-sets
@@ -76,7 +76,7 @@
    path-sets]
   (update (match-path-sets pattern path-sets)
           :matched
-          (partial map #(assoc % :query (handler (:paths %))))))
+          (partial map #(assoc % :query (handler (:path-set %))))))
 
 
 (defn router

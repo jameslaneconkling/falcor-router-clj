@@ -22,7 +22,7 @@
       (is-equal (match-path-set pattern
                                 ["resource" ["one" "two"] "label" 0])
                 {:unmatched []
-                 :matched [{:paths [["resource"] ["one" "two"] ["label"] [0]]
+                 :matched [{:path-set [["resource"] ["one" "two"] ["label"] [0]]
                             :remaining []}]})
 
       ;; test unmatched - bad pattern
@@ -44,14 +44,14 @@
                                 ["resource" ["one" {:to 10}] "label" ["abc" {:to 1}]])
                 {:unmatched [["resource" {:to 10} "label" ["abc" {:to 1}]]
                              ["resource" ["one" {:to 10}] "label" "abc"]]
-                 :matched [{:paths [["resource"] ["one"] ["label"] [{:to 1}]]
+                 :matched [{:path-set [["resource"] ["one"] ["label"] [{:to 1}]]
                             :remaining []}]})
 
       ;; test remaining
       (is-equal (match-path-set pattern
                                 ["resource" "one" "relation" 0 "label" 0])
                 {:unmatched []
-                 :matched [{:paths [["resource"] ["one"] ["relation"] [0]]
+                 :matched [{:path-set [["resource"] ["one"] ["relation"] [0]]
                             :remaining ["label" 0]}]})))
 
 
@@ -63,9 +63,9 @@
                                  [["resource" ["one" "two"] "label" 0]
                                   ["resource" "three" "relation" {:to 4}]])
                 {:unmatched []
-                 :matched [{:paths [["resource"] ["one" "two"] ["label"] [0]]
+                 :matched [{:path-set [["resource"] ["one" "two"] ["label"] [0]]
                             :remaining []}
-                           {:paths [["resource"] ["three"] ["relation"] [{:to 4}]]
+                           {:path-set [["resource"] ["three"] ["relation"] [{:to 4}]]
                             :remaining []}]})
 
       ;; test unmatched
@@ -76,9 +76,9 @@
                 {:unmatched [["resource" {:to 10} "label" [0 {:to 1}]]
                              ["resource" {:to 10} "relation" ["abc" {:to 1}]]
                              ["resource" ["one" {:to 10}] "relation" "abc"]]
-                 :matched [{:paths [["resource"] ["one"] ["relation"] [{:to 1}]]
+                 :matched [{:path-set [["resource"] ["one"] ["relation"] [{:to 1}]]
                             :remaining []}
-                           {:paths [["resource"] ["two"] ["relation"] [0]]
+                           {:path-set [["resource"] ["two"] ["relation"] [0]]
                             :remaining ["label" 0]}]})))
 
   (t/testing "router"
@@ -102,11 +102,11 @@
                      ["search" "QUERY" {:from 2 :to 3} ["label" "age"] 0]]]
       (is-equal ((router routes) path-sets)
                 {:unmatched [],
-                 :matched [{:paths [["resource"] ["one" "two"] ["label"] [0]],
+                 :matched [{:path-set [["resource"] ["one" "two"] ["label"] [0]],
                             :remaining [],
                             :query [{:path ["resource" "one" "label" 0], :value "label0"}
                                     {:path ["resource" "two" "label" 0], :value "label0"}]}
-                           {:paths [["search"] ["QUERY"] [{:from 2 :to 3}] ["label" "age"] [0]],
+                           {:path-set [["search"] ["QUERY"] [{:from 2 :to 3}] ["label" "age"] [0]],
                             :remaining [],
                             :query [{:path ["search" "QUERY" 2 "label" 0], :value "QUERY2label0"}
                                     {:path ["search" "QUERY" 2 "age" 0], :value "QUERY2age0"}
