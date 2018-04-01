@@ -79,18 +79,29 @@
           (partial map #(assoc % :query (handler (:path-set %))))))
 
 
+(defn merge-parsed
+  [parsed {:keys [unmatched matched]}]
+  (-> parsed
+      (assoc :unmatched unmatched)
+      (update :matched concat matched)))
+
+
 (defn router
   [routes]
   (fn [path-sets]
-    (reduce (fn [result route]
-              (let [{:keys [unmatched matched]} (query-route route (:unmatched result))]
-                ;; TODO - could this just be a merge-with bt/ result and parsed?
-                (cond-> result
-                  true (assoc :unmatched unmatched)
-                  true (update :matched concat matched)
-                  (empty? unmatched) reduced)))
+    (reduce (fn [parsed route]
+              (let [next-parsed (merge-parsed parsed
+                                              (query-route route (:unmatched parsed)))]
+                (if (empty? (:unmatched next-parsed))
+                  (reduced next-parsed)
+                  next-parsed)))
             {:unmatched path-sets :matched []}
             routes)))
+
+
+(defn path-values->json-graph
+  [path-values]
+  {:jsonGraph (reduce #(assoc-in %1 (:path %2) (:value %2)) {} path-values)})
 
 
 ;; TODO - async via core.async
